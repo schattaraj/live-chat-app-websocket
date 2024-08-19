@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { border: 1px solid #ccc; padding: 10px; width: 300px; height: 300px; overflow-y: scroll; }
+        #message { width: 240px; }
+    </style>
+</head>
+<body>
+    <h1>Live Chat</h1>
+    <div id="chat"></div>
+    <input id="message" type="text" placeholder="Type a message...">
+    <button id="send">Send</button>
+
+    <script>
+        function processBlob(blob) {
+            const chat = document.getElementById('chat');
+    const reader = new FileReader();
+    
+    // Read the blob as text
+    reader.onload = () => {
+        const text = reader.result;
+        console.log('Blob as text:', text);
+        const message = document.createElement('div');
+        // message.textContent = event.data;
+            message.textContent = text;
+            chat.appendChild(message);
+            chat.scrollTop = chat.scrollHeight;
+    };
+    
+    // Read the blob as data URL (useful for images)
+    reader.onloadend = () => {
+        const dataUrl = reader.result;
+        console.log('Blob as Data URL:', dataUrl);
+    };
+    
+   reader.readAsText(blob); // or readAsDataURL(blob) for images
+}
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const sendButton = document.getElementById('send');
+
+        const ws = new WebSocket('wss://' + location.host);
+
+        ws.onmessage = event => {
+            console.log("event",event)
+
+            if (event.data instanceof Blob) {
+        // Handle Blob data here
+        processBlob(event.data);
+        // const message = document.createElement('div');
+        // // message.textContent = event.data;
+        //     message.textContent = processBlob(event.data);
+        //     console.log("blob data",processBlob(event.data))
+        //     chat.appendChild(message);
+        //     chat.scrollTop = chat.scrollHeight;
+    } else {
+        // Handle other types of data
+        console.log(event.data);
+    }
+
+           
+        };
+
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (message) {
+                ws.send(message);
+                messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
