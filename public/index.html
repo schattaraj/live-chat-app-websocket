@@ -3,82 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Chat</title>
+    <title>LED Control</title>
     <style>
         body { font-family: Arial, sans-serif; }
-        #chat { border: 1px solid #ccc; padding: 10px; width: 300px; height: 300px; overflow-y: scroll; }
-        #message { width: 240px; }
+        #control { margin-bottom: 10px; }
+        button {
+            margin: 5px;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .on {
+            background-color: #4CAF50; /* Green */
+            color: white;
+        }
+        .off {
+            background-color: #f44336; /* Red */
+            color: white;
+        }
+        .disabled {
+            background-color: #ccc; /* Gray */
+            color: #888;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
-    <h1>Live Chat</h1>
-    <div id="chat"></div>
-    <input id="message" type="text" placeholder="Type a message...">
-    <button id="send">Send</button>
+    <h1>LED Control</h1>
+    <div id="control">
+        <button id="led1On" onclick="sendCommand('led 1 on')" class="on">Turn LED 1 On</button>
+        <button id="led1Off" onclick="sendCommand('led 1 off')" class="off">Turn LED 1 Off</button>
+        <button id="led2On" onclick="sendCommand('led 2 on')" class="on">Turn LED 2 On</button>
+        <button id="led2Off" onclick="sendCommand('led 2 off')" class="off">Turn LED 2 Off</button>
+        <button id="led3On" onclick="sendCommand('led 3 on')" class="on">Turn LED 3 On</button>
+        <button id="led3Off" onclick="sendCommand('led 3 off')" class="off">Turn LED 3 Off</button>
+        <button id="led4On" onclick="sendCommand('led 4 on')" class="on">Turn LED 4 On</button>
+        <button id="led4Off" onclick="sendCommand('led 4 off')" class="off">Turn LED 4 Off</button>
+    </div>
+    <div id="status"></div>
 
     <script>
-        function processBlob(blob) {
-            const chat = document.getElementById('chat');
-    const reader = new FileReader();
-    
-    // Read the blob as text
-    reader.onload = () => {
-        const text = reader.result;
-        console.log('Blob as text:', text);
-        const message = document.createElement('div');
-        // message.textContent = event.data;
-            message.textContent = text;
-            chat.appendChild(message);
-            chat.scrollTop = chat.scrollHeight;
-    };
-    
-    // Read the blob as data URL (useful for images)
-    reader.onloadend = () => {
-        const dataUrl = reader.result;
-        console.log('Blob as Data URL:', dataUrl);
-    };
-    
-   reader.readAsText(blob); // or readAsDataURL(blob) for images
-}
-        const chat = document.getElementById('chat');
-        const messageInput = document.getElementById('message');
-        const sendButton = document.getElementById('send');
-
+        // Create WebSocket connection
         const ws = new WebSocket('wss://' + location.host);
 
-        ws.onmessage = event => {
-            console.log("event",event)
-
-            if (event.data instanceof Blob) {
-        // Handle Blob data here
-        processBlob(event.data);
-        // const message = document.createElement('div');
-        // // message.textContent = event.data;
-        //     message.textContent = processBlob(event.data);
-        //     console.log("blob data",processBlob(event.data))
-        //     chat.appendChild(message);
-        //     chat.scrollTop = chat.scrollHeight;
-    } else {
-        // Handle other types of data
-        console.log(event.data);
-    }
-
-           
+        ws.onopen = () => {
+            console.log('Connected to WebSocket server');
         };
 
-        sendButton.addEventListener('click', () => {
-            const message = messageInput.value;
-            if (message) {
-                ws.send(message);
-                messageInput.value = '';
-            }
-        });
+        ws.onmessage = event => {
+            console.log("Received message:", event.data);
+            const statusDiv = document.getElementById('status');
+            const message = document.createElement('div');
+            message.textContent = event.data;
+            statusDiv.appendChild(message);
 
-        messageInput.addEventListener('keydown', event => {
-            if (event.key === 'Enter') {
-                sendButton.click();
+            // Update button states based on received message
+            updateButtonStates(event.data);
+        };
+
+        function sendCommand(command) {
+            console.log('Sending command:', command);
+            ws.send(command);
+            updateButtonStates(command);
+        }
+
+        function updateButtonStates(message) {
+            console.log(message);
+            // Determine LED state and update button styles
+            const ledStateMatch = message.match(/led (\d+) (on|off)/);
+            if (ledStateMatch) {
+                const ledNumber = ledStateMatch[1];
+                const state = ledStateMatch[2];
+                const onButton = document.getElementById(`led${ledNumber}On`);
+                const offButton = document.getElementById(`led${ledNumber}Off`);
+
+                if (state === 'on') {
+                    onButton.classList.add('disabled');
+                    offButton.classList.remove('disabled');
+                } else if (state === 'off') {
+                    offButton.classList.add('disabled');
+                    onButton.classList.remove('disabled');
+                }
             }
-        });
+        }
     </script>
 </body>
 </html>
